@@ -1,0 +1,25 @@
+name: Hello Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify:
+    name: Verify the pipeline works
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print environment info
+        run: |
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Runner OS: ${{ runner.os }}"
+
+      - name: List repo files
+        run: ls -la
