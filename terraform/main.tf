@@ -98,11 +98,56 @@ resource "aws_s3_bucket_logging" "app_bucket" {
 # Lifecycle policy
 resource "aws_s3_bucket_lifecycle_configuration" "app_bucket" {
   bucket = aws_s3_bucket.app_bucket.id
+
   rule {
     id     = "expire-old-versions"
     status = "Enabled"
     noncurrent_version_expiration {
       noncurrent_days = 90
+    }
+    # Fixes CKV_AWS_300 - abort incomplete multipart uploads
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+# KMS key policy - fixes CKV2_AWS_64
+resource "aws_kms_key_policy" "s3_key" {
+  key_id = aws_kms_key.s3_key.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Get current AWS account ID
+data "aws_caller_identity" "current" {}
+
+# Versioning on log bucket - fixes CKV_AWS_21
+resource "aws_s3_bucket_versioning" "log_bucket" {
+  bucket = aws_s3_bucket.log_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+# Encryption on log bucket - fixes CKV_AWS_145
+resource "aws_s3_bucket_server_side_encryption_configuration" "log_bucket" {
+  bucket = aws_s3_bucket.log_bucket.id
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.s3_key.arn
+      sse_algorithm     = "aws:kms"
     }
   }
 }
