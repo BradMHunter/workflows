@@ -22,10 +22,10 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run ESLint
-        run: npx eslint . --ext .js,.ts --max-warnings 0
+        run: npm run lint
 
   # ─── Job 2: Lint Terraform ───────────────────────────────────
   lint-terraform:
